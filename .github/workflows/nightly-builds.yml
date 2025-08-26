@@ -142,7 +142,7 @@ jobs:
 
           echo "Starting Tekton pipeline..."
 
-          PIPELINE_RUN=$(tkn pipeline start pipeline-release \
+          PIPELINE_RUN=$(tkn pipeline start dashboard-release \
             --serviceaccount=tekton-nightly-test \
             --param package="${{ env.PACKAGE }}" \
             --param gitRevision="${{ steps.version.outputs.latest_sha }}" \
