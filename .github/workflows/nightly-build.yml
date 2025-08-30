@@ -1,0 +1,115 @@
+name: Tekton Dashboard Nightly Build
+
+on:
+  push:
+    branches:
+      - nightly-with-plumbing-action
+  schedule:
+    # Run at 03:00 UTC daily
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      kubernetes_version:
+        description: 'Kubernetes version to test with'
+        required: false
+        default: 'v1.33.x'
+      nightly_bucket:
+        description: 'Nightly bucket for builds'
+        required: false
+        default: 'gs://tekton-releases-nightly/dashboard'
+        type: string
+
+env:
+  KUBERNETES_VERSION: ${{ inputs.kubernetes_version || 'v1.33.x' }}
+  REGISTRY: ghcr.io
+  PACKAGE: github.com/${{ github.repository }}
+  BUCKET: ${{ inputs.nightly_bucket || 'gs://tekton-releases-nightly/dashboard' }}
+  IMAGE_REGISTRY_PATH: ${{ github.repository }}
+  IMAGE_REGISTRY_USER: tekton-robot
+
+jobs:
+  build:
+    name: Nightly Build (K8s ${{ inputs.kubernetes_version || 'v1.33.x' }})
+    runs-on: ubuntu-latest
+    ## if: github.repository_owner == 'tektoncd'  # do not run this elsewhere
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911
+        with:
+          disable-sudo: true
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Generate version info
+        id: version
+        run: |
+          latest_sha=${{ github.sha }}
+          date_tag=$(date +v%Y%m%d-${latest_sha:0:7})
+          echo "version_tag=${date_tag}" >> "$GITHUB_OUTPUT"
+          echo "latest_sha=${latest_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Tekton Nightly Infra
+        uses: anithapriyanatarajan/plumbing/.github/actions/setup-nightly-infra@nightly-with-gha
+        with:
+          kubernetes_version: v1.33.x
+          image_registry_user: tekton-robot
+        env:
+          GCS_SERVICE_ACCOUNT_KEY: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Apply Build Pipeline Definition
+        run: |
+          kustomize build tekton | kubectl apply -f -
+
+      - name: Start Tekton Build Pipeline
+        run: |
+          set -euo pipefail  # Exit on any error, undefined variables, or pipe failures
+
+          echo "Starting Tekton pipeline..."
+
+          PIPELINE_RUN=$(tkn pipeline start dashboard-release \
+            --serviceaccount=release-right-meow \
+            --param package="${{ env.PACKAGE }}" \
+            --param gitRevision="${{ steps.version.outputs.latest_sha }}" \
+            --param versionTag="${{ steps.version.outputs.version_tag }}" \
+            --param releaseBucket="${{ env.BUCKET }}" \
+            --param imageRegistry=${{ env.REGISTRY }} \
+            --param imageRegistryPath="${{ env.IMAGE_REGISTRY_PATH }}" \
+            --param imageRegistryUser="${{ env.IMAGE_REGISTRY_USER }}" \
+            --param imageRegistryRegions="" \
+            --param platforms="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le" \
+            --param koExtraArgs="" \
+            --param serviceAccountPath=release.json \
+            --param serviceAccountImagesPath=docker-config.json \
+            --param releaseAsLatest="true" \
+            --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml \
+            --workspace name=release-secret,secret=release-secret \
+            --workspace name=release-images-secret,secret=release-images-secret \
+            --tasks-timeout 2h \
+            --pipeline-timeout 3h \
+            --output name) || {
+            echo "Failed to start Tekton pipeline!"
+            exit 1
+          }
+
+          echo "Pipeline started: ${PIPELINE_RUN}"
+          tkn pipelinerun logs "${PIPELINE_RUN}" -f
+
+          # Check if pipeline succeeded
+          tkn pipelinerun describe "${PIPELINE_RUN}" --output jsonpath='{.status.conditions[?(@.type=="Succeeded")].status}' | grep -q "True" || {
+            echo "Pipeline failed!"
+            tkn pipelinerun describe "${PIPELINE_RUN}"
+            exit 1
+          }
+
+          echo "✅ Pipeline Run completed successfully!"
