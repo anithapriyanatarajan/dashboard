@@ -63,9 +63,8 @@ jobs:
         with:
           kubernetes_version: v1.33.x
           image_registry_user: tekton-robot
-        env:
-          GCS_SERVICE_ACCOUNT_KEY: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          ghcr_token: ${{ secrets.GHCR_TOKEN }}
+          gcs_service_account_key: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}
 
       - name: Apply Build Pipeline Definition
         run: |
