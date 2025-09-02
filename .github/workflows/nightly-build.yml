@@ -24,6 +24,7 @@ env:
   REGISTRY: ghcr.io
   PACKAGE: github.com/tektoncd/dashboard
   # PACKAGE: github.com/${{ github.repository }}
+  BUCKET: gs://anitha-tekton-nightly-test/dashboard'
   BUCKET: ${{ inputs.nightly_bucket || 'gs://tekton-releases-nightly/dashboard' }}
   IMAGE_REGISTRY_PATH: ${{ github.repository }}
   IMAGE_REGISTRY_USER: tekton-robot
