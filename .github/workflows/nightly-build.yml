@@ -59,3 +59,50 @@ jobs:
           image_registry_user: tekton-robot
           ghcr_token: ${{ secrets.GHCR_TOKEN }}
           gcs_service_account_key: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}
+  
+      - name: Apply Build Pipeline Definition
+        run: |
+          kustomize build tekton | kubectl apply -f -
+
+      - name: Start Tekton Build Pipeline
+        run: |
+          set -euo pipefail  # Exit on any error, undefined variables, or pipe failures
+
+          echo "Starting Tekton pipeline..."
+
+          PIPELINE_RUN=$(tkn pipeline start dashboard-release \
+            --serviceaccount=release-right-meow \
+            --param package="${{ env.PACKAGE }}" \
+            --param gitRevision="${{ steps.version.outputs.latest_sha }}" \
+            --param versionTag="${{ steps.version.outputs.version_tag }}" \
+            --param releaseBucket="${{ env.BUCKET }}" \
+            --param imageRegistry=${{ env.REGISTRY }} \
+            --param imageRegistryPath="${{ env.IMAGE_REGISTRY_PATH }}" \
+            --param imageRegistryUser="${{ env.IMAGE_REGISTRY_USER }}" \
+            --param imageRegistryRegions="" \
+            --param platforms="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le" \
+            --param koExtraArgs="" \
+            --param serviceAccountPath=release.json \
+            --param serviceAccountImagesPath=docker-config.json \
+            --param releaseAsLatest="true" \
+            --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml \
+            --workspace name=release-secret,secret=release-secret \
+            --workspace name=release-images-secret,secret=release-images-secret \
+            --tasks-timeout 2h \
+            --pipeline-timeout 3h \
+            --output name) || {
+            echo "Failed to start Tekton pipeline!"
+            exit 1
+          }
+
+          echo "Pipeline started: ${PIPELINE_RUN}"
+          tkn pipelinerun logs "${PIPELINE_RUN}" -f
+
+          # Check if pipeline succeeded
+          tkn pipelinerun describe "${PIPELINE_RUN}" --output jsonpath='{.status.conditions[?(@.type=="Succeeded")].status}' | grep -q "True" || {
+            echo "Pipeline failed!"
+            tkn pipelinerun describe "${PIPELINE_RUN}"
+            exit 1
+          }
+
+          echo "✅ Pipeline Run completed successfully!"
