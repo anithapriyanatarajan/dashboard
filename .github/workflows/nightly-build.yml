@@ -22,7 +22,8 @@ on:
 env:
   KUBERNETES_VERSION: ${{ inputs.kubernetes_version || 'v1.33.x' }}
   REGISTRY: ghcr.io
-  PACKAGE: github.com/${{ github.repository }}
+  PACKAGE: github.com/tektoncd/dashboard
+  # PACKAGE: github.com/${{ github.repository }}
   BUCKET: ${{ inputs.nightly_bucket || 'gs://tekton-releases-nightly/dashboard' }}
   IMAGE_REGISTRY_PATH: ${{ github.repository }}
   IMAGE_REGISTRY_USER: tekton-robot
