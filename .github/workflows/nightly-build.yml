@@ -108,3 +108,6 @@ jobs:
           }
 
           echo "✅ Pipeline Run completed successfully!"
+
+          echo "Following Tekton Chains controller logs for 3 minutes..."
+          timeout 180 kubectl logs deploy/tekton-chains-controller -n tekton-chains -f || echo "Log follow completed after 3 minutes"
