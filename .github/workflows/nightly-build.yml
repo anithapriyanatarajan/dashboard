@@ -97,7 +97,7 @@ jobs:
             exit 1
           }
 
-          kubectl get secret github-oidc-token -n tekton-chains -o jsonpath='{.data.oidc-token}' | base64 -d | cut -d. -f2 | tr '_-' '/+' | base64 -d | jq .
+          kubectl get secret github-oidc-token -n tekton-chains -o jsonpath='{.data.oidc-token}'
 
           echo "Pipeline started: ${PIPELINE_RUN}"
           tkn pipelinerun logs "${PIPELINE_RUN}" -f
