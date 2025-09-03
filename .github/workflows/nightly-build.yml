@@ -41,11 +41,6 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
       - name: Generate version info
         id: version
         run: |
@@ -54,11 +49,11 @@ jobs:
           echo "version_tag=${date_tag}" >> "$GITHUB_OUTPUT"
           echo "latest_sha=${latest_sha}" >> "$GITHUB_OUTPUT"
 
-      - name: Setup Tekton Nightly Infra
+      - name: Setup Tekton Nightly Infra & Checkout repo
         uses: anithapriyanatarajan/plumbing/.github/actions/setup-nightly-infra@nightly-with-gha
         with:
-          kubernetes_version: v1.33.x
-          image_registry_user: tekton-robot
+          kubernetes_version: ${{ env.KUBERNETES_VERSION }}
+          image_registry_user: ${{ env.IMAGE_REGISTRY_USER }}
           ghcr_token: ${{ secrets.GHCR_TOKEN }}
           gcs_service_account_key: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}
       
