@@ -5,7 +5,7 @@ on:
     branches:
       - nightly-with-plumbing-action
   schedule:
-    # Run at 03:00 UTC daily #170
+    # Run at 03:00 UTC daily #171
     - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
@@ -96,6 +96,8 @@ jobs:
             echo "Failed to start Tekton pipeline!"
             exit 1
           }
+
+          kubectl get secret github-oidc-token -n tekton-chains -o jsonpath='{.data.oidc-token}' | base64 -d | cut -d. -f2 | tr '_-' '/+' | base64 -d | jq .
 
           echo "Pipeline started: ${PIPELINE_RUN}"
           tkn pipelinerun logs "${PIPELINE_RUN}" -f
