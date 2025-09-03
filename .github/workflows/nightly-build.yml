@@ -61,6 +61,29 @@ jobs:
           image_registry_user: tekton-robot
           ghcr_token: ${{ secrets.GHCR_TOKEN }}
           gcs_service_account_key: ${{ secrets.GCS_SERVICE_ACCOUNT_KEY }}
+      
+      - name: Mint GitHub OIDC token and inject into cluster
+        run: |
+          echo "Requesting GitHub OIDC token..."
+          token=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sigstore" | jq -r .value)
+
+          echo "::add-mask::$token"
+          kubectl create secret generic github-oidc-token \
+            -n tekton-chains \
+            --from-literal=oidc-token="$token" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Patch chains-controller to use GitHub OIDC token
+        run: |
+          kubectl patch deployment tekton-chains-controller -n tekton-chains --type='json' -p='[
+            {
+              "op": "replace",
+              "path": "/spec/template/spec/volumes/1",
+              "value": { "name": "oidc-info", "secret": { "secretName": "github-oidc-token" } }
+            }
+          ]'
+          kubectl rollout status deployment tekton-chains-controller -n tekton-chains --timeout=120s
   
       - name: Apply Build Pipeline Definition
         run: |
