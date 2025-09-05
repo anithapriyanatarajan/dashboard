@@ -12,17 +12,14 @@ on:
       kubernetes_version:
         description: 'Kubernetes version to test with'
         required: false
-        default: 'v1.33.x'
       nightly_bucket:
         description: 'Nightly bucket for builds'
         required: false
-        default: 'gs://tekton-releases-nightly/dashboard'
-        type: string
 
 env:
   KUBERNETES_VERSION: ${{ inputs.kubernetes_version || 'v1.33.x' }}
   REGISTRY: ghcr.io
-  PACKAGE: github.com/tektoncd/dashboard
+  # PACKAGE: github.com/tektoncd/dashboard
   # PACKAGE: github.com/${{ github.repository }}
   BUCKET: gs://anitha-tekton-nightly-test/dashboard'
   #BUCKET: ${{ inputs.nightly_bucket || 'gs://tekton-releases-nightly/dashboard' }}
@@ -31,7 +28,7 @@ env:
 
 jobs:
   build:
-    name: Nightly Build (K8s ${{ inputs.kubernetes_version || 'v1.33.x' }})
+    name: Nightly Build
     runs-on: ubuntu-latest
     ## if: github.repository_owner == 'tektoncd'  # do not run this elsewhere
 
@@ -69,7 +66,6 @@ jobs:
 
           PIPELINE_RUN=$(tkn pipeline start dashboard-release \
             --serviceaccount=release-right-meow \
-            --param package="${{ env.PACKAGE }}" \
             --param gitRevision="${{ steps.version.outputs.latest_sha }}" \
             --param versionTag="${{ steps.version.outputs.version_tag }}" \
             --param releaseBucket="${{ env.BUCKET }}" \
@@ -77,16 +73,15 @@ jobs:
             --param imageRegistryPath="${{ env.IMAGE_REGISTRY_PATH }}" \
             --param imageRegistryUser="${{ env.IMAGE_REGISTRY_USER }}" \
             --param imageRegistryRegions="" \
-            --param platforms="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le" \
             --param koExtraArgs="" \
             --param serviceAccountPath=release.json \
-            --param serviceAccountImagesPath=docker-config.json \
+            --param serviceAccountImagesPath=credentials \
             --param releaseAsLatest="true" \
             --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml \
             --workspace name=release-secret,secret=release-secret \
-            --workspace name=release-images-secret,secret=release-images-secret \
-            --tasks-timeout 2h \
-            --pipeline-timeout 3h \
+            --workspace name=release-images-secret,secret=ghcr-creds \
+            --tasks-timeout 1h \
+            --pipeline-timeout 2h \
             --output name) || {
             echo "Failed to start Tekton pipeline!"
             exit 1
