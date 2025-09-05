@@ -64,6 +64,26 @@ jobs:
 
           echo "Starting Tekton pipeline..."
 
+          tkn pipeline start dashboard-release \
+            --serviceaccount=release-right-meow \
+            --param gitRevision="${{ steps.version.outputs.latest_sha }}" \
+            --param versionTag="${{ steps.version.outputs.version_tag }}" \
+            --param releaseBucket="${{ env.BUCKET }}" \
+            --param imageRegistry=${{ env.REGISTRY }} \
+            --param imageRegistryPath="${{ env.IMAGE_REGISTRY_PATH }}" \
+            --param imageRegistryUser="${{ env.IMAGE_REGISTRY_USER }}" \
+            --param imageRegistryRegions="" \
+            --param koExtraArgs="" \
+            --param serviceAccountPath=release.json \
+            --param serviceAccountImagesPath=credentials \
+            --param releaseAsLatest="true" \
+            --workspace name=workarea,volumeClaimTemplateFile=workspace-template.yaml \
+            --workspace name=release-secret,secret=release-secret \
+            --workspace name=release-images-secret,secret=ghcr-creds \
+            --tasks-timeout 1h \
+            --pipeline-timeout 2h \
+            --showlog
+
           PIPELINE_RUN=$(tkn pipeline start dashboard-release \
             --serviceaccount=release-right-meow \
             --param gitRevision="${{ steps.version.outputs.latest_sha }}" \
