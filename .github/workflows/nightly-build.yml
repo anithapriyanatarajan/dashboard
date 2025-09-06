@@ -38,6 +38,11 @@ jobs:
       id-token: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
       - name: Generate version info
         id: version
         run: |
@@ -47,7 +52,7 @@ jobs:
           echo "latest_sha=${latest_sha}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Tekton Nightly Infra & Checkout repo
-        uses: anithapriyanatarajan/plumbing/.github/actions/setup-nightly-infra@nightly-with-gha
+        uses: tektoncd/plumbing/.github/actions/setup-nightly-infra@c9f919338060bdc64e03b74e58a39c60ae3f8524
         with:
           kubernetes_version: ${{ env.KUBERNETES_VERSION }}
           image_registry_user: ${{ env.IMAGE_REGISTRY_USER }}
