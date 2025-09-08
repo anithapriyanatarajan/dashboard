@@ -5,7 +5,7 @@ on:
     branches:
       - nightly-with-plumbing-action
   schedule:
-    # Run at 03:00 UTC daily #183
+    # Run at 03:00 UTC daily #184
     - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
@@ -54,7 +54,8 @@ jobs:
           echo "latest_sha=${latest_sha}" >> "$GITHUB_OUTPUT"
 
       - name: Setup Tekton Nightly Infra & Checkout repo
-        uses: tektoncd/plumbing/.github/actions/setup-nightly-infra@c9f919338060bdc64e03b74e58a39c60ae3f8524
+        uses: anithapriyanatarajan/plumbing/.github/actions/setup-nightly-infra@nightly-with-gha
+        #uses: tektoncd/plumbing/.github/actions/setup-nightly-infra@c9f919338060bdc64e03b74e58a39c60ae3f8524
         with:
           kubernetes_version: ${{ env.KUBERNETES_VERSION }}
           image_registry_user: ${{ env.IMAGE_REGISTRY_USER }}
