@@ -24,7 +24,8 @@ env:
   BUCKET: gs://anitha-tekton-nightly-test/dashboard'
   #BUCKET: ${{ inputs.nightly_bucket || 'gs://tekton-releases-nightly/dashboard' }}
   IMAGE_REGISTRY_PATH: ${{ github.repository }}
-  IMAGE_REGISTRY_USER: tekton-robot
+  #IMAGE_REGISTRY_USER: tekton-robot
+  IMAGE_REGISTRY_USER: anithapriyanatarajan
 
 jobs:
   build:
@@ -109,5 +110,5 @@ jobs:
 
           echo "Following Tekton Chains controller logs for 3 minutes..."
           echo '::group::Tekton Chains controller logs'
-          timeout …
+          timeout 180 kubectl logs deploy/tekton-chains-controller -n tekton-chains -f || echo "Log follow completed after 3 minutes"
           echo '::endgroup::'
