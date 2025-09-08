@@ -5,7 +5,7 @@ on:
     branches:
       - nightly-with-plumbing-action
   schedule:
-    # Run at 03:00 UTC daily #182
+    # Run at 03:00 UTC daily #183
     - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
@@ -68,6 +68,11 @@ jobs:
       - name: Start Tekton Build Pipeline
         run: |
           set -euo pipefail  # Exit on any error, undefined variables, or pipe failures
+
+          kubectl get serviceaccount tekton-chains-controller -n tekton-chains -o yaml || {
+            echo "Tekton Chains controller service account not found!"
+            exit 1
+          }
 
           echo "Starting Tekton pipeline..."
 
