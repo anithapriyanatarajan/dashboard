@@ -5,7 +5,7 @@ on:
     branches:
       - nightly-with-plumbing-action
   schedule:
-    # Run at 03:00 UTC daily #180
+    # Run at 03:00 UTC daily #182
     - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
@@ -105,6 +105,8 @@ jobs:
             tkn pipelinerun describe "${PIPELINE_RUN}"
             exit 1
           }
+          
+          kubectl get pipelinerun "${PIPELINE_RUN}" -o yaml
 
           echo "✅ Pipeline Run completed successfully!"
 
